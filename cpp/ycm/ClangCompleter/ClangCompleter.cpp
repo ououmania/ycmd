@@ -153,6 +153,7 @@ Location ClangCompleter::GetDefinitionLocation(
 }
 
 Location ClangCompleter::GetDefinitionOrDeclarationLocation(
+  const std::string &project_name,
   const std::string &translation_unit,
   const std::string &filename,
   int line,
@@ -165,11 +166,34 @@ Location ClangCompleter::GetDefinitionOrDeclarationLocation(
                                          unsaved_files,
                                          flags );
 
-  return unit->GetDefinitionOrDeclarationLocation( filename,
+  return unit->GetDefinitionOrDeclarationLocation( project_name,
+                                                   filename,
                                                    line,
                                                    column,
                                                    unsaved_files,
                                                    reparse );
+}
+
+std::vector< Location > ClangCompleter::GetReferenceLocations(
+  const std::string &project_name,
+  const std::string &translation_unit,
+  const std::string &filename,
+  int line,
+  int column,
+  const std::vector< UnsavedFile > &unsaved_files,
+  const std::vector< std::string > &flags,
+  bool reparse ) {
+  shared_ptr< TranslationUnit > unit =
+    translation_unit_store_.GetOrCreate( translation_unit,
+                                         unsaved_files,
+                                         flags );
+
+  return unit->GetReferenceLocations( project_name,
+                                      filename,
+                                      line,
+                                      column,
+                                      unsaved_files,
+                                      reparse );
 }
 
 std::string ClangCompleter::GetTypeAtLocation(

@@ -21,7 +21,7 @@ import textwrap
 import xml.etree.ElementTree
 from xml.etree.ElementTree import ParseError as XmlParseError
 
-from ycmd import responses
+from ycmd import responses, extra_conf_store
 from ycmd.utils import ImportCore, PathLeftSplit, re, ToBytes, ToUnicode
 from ycmd.completers.completer import Completer
 from ycmd.completers.cpp.flags import ( Flags, PrepareFlagsForClang,
@@ -181,6 +181,8 @@ class ClangCompleter( Completer ):
                                 func = 'GetEnclosingFunctionAtLocation' ) ),
       'FixIt'                    : ( lambda self, request_data, args:
          self._FixIt( request_data ) ),
+      'GetReferences'            : ( lambda self, request_data, args:
+         self._GetReferences( request_data ) ),
       'GetDoc'                   : ( lambda self, request_data, args:
          self._GetSemanticInfo( request_data,
                                 reparse = True,
@@ -205,14 +207,30 @@ class ClangCompleter( Completer ):
     files = self.GetUnsavedFilesVector( request_data )
     line = request_data[ 'line_num' ]
     column = request_data[ 'column_num' ]
-    return getattr( self._completer, goto_function )(
-        filename,
-        request_data[ 'filepath' ],
-        line,
-        column,
-        files,
-        flags,
-        reparse )
+    if goto_function == 'GetDefinitionOrDeclarationLocation':
+      module = extra_conf_store.ModuleForSourceFile(filename)
+      if module:
+        project_name = getattr(module, 'PROJECT_NAME', '')
+      else:
+        project_name = ''
+      return getattr( self._completer, goto_function)(
+          project_name,
+          filename,
+          request_data[ 'filepath' ],
+          line,
+          column,
+          files,
+          flags,
+          True )
+    else:
+      return getattr( self._completer, goto_function )(
+          filename,
+          request_data[ 'filepath' ],
+          line,
+          column,
+          files,
+          flags,
+          reparse )
 
 
   def _GoToDefinition( self, request_data ):
@@ -358,6 +376,40 @@ class ClangCompleter( Completer ):
     # in a nice way
 
     return responses.BuildFixItResponse( fixits )
+
+
+  def _GetReferences( self, request_data ):
+    flags, filename = self._FlagsForRequest( request_data )
+    if not flags:
+      raise ValueError( NO_COMPILE_FLAGS_MESSAGE )
+
+    if self._completer.UpdatingTranslationUnit(
+        ToCppStringCompatible( filename ) ):
+      raise RuntimeError( PARSING_FILE_MESSAGE )
+
+    files = self.GetUnsavedFilesVector( request_data )
+    line = request_data[ 'line_num' ]
+    column = request_data[ 'column_num' ]
+
+    module = extra_conf_store.ModuleForSourceFile(filename)
+    if module:
+      project_name = getattr(module, 'PROJECT_NAME', '')
+    else:
+      project_name = ''
+
+    locations = getattr( self._completer, "GetReferenceLocations" )(
+        ToCppStringCompatible( project_name ),
+        ToCppStringCompatible( filename ),
+        ToCppStringCompatible( request_data[ 'filepath' ] ),
+        line,
+        column,
+        files,
+        flags,
+        True )
+
+    # don't raise an error if no references: - leave that to the client to respond
+    # in a nice way
+    return responses.BuildReferenceResponse( locations )
 
 
   def OnFileReadyToParse( self, request_data ):

@@ -54,6 +54,7 @@ PYBIND11_MAKE_OPAQUE( std::vector< CompletionData > )
 PYBIND11_MAKE_OPAQUE( std::vector< Diagnostic > )
 PYBIND11_MAKE_OPAQUE( std::vector< FixIt > )
 PYBIND11_MAKE_OPAQUE( std::vector< FixItChunk > )
+PYBIND11_MAKE_OPAQUE( std::vector< Location > );
 #endif // USE_CLANG_COMPLETER
 
 PYBIND11_MODULE( ycm_core, mod )
@@ -121,6 +122,9 @@ PYBIND11_MODULE( ycm_core, mod )
     .def( "GetDefinitionOrDeclarationLocation",
           &ClangCompleter::GetDefinitionOrDeclarationLocation,
           py::call_guard< py::gil_scoped_release >() )
+    .def( "GetReferenceLocations",
+          &ClangCompleter::GetReferenceLocations,
+          py::call_guard< py::gil_scoped_release >() )
     .def( "DeleteCachesForFile",
           &ClangCompleter::DeleteCachesForFile,
           py::call_guard< py::gil_scoped_release >() )
@@ -179,6 +183,8 @@ PYBIND11_MODULE( ycm_core, mod )
     .def_readonly( "column_number_", &Location::column_number_ )
     .def_readonly( "filename_", &Location::filename_ )
     .def( "IsValid", &Location::IsValid );
+
+  py::bind_vector< std::vector< Location > >( mod, "LocationVector" );
 
   py::class_< Range >( mod, "Range" )
     .def( py::init<>() )

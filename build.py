@@ -388,6 +388,9 @@ def ParseArguments():
   parser.add_argument( '--system-libclang', action = 'store_true',
                        help = 'Use system libclang instead of downloading one '
                        'from llvm.org. NOT RECOMMENDED OR SUPPORTED!' )
+  parser.add_argument( '--system-protobuf', action = 'store_true',
+                      help = 'Use system protobuf instead of the one in the '
+                      'third_party directory from github')
   parser.add_argument( '--msvc', type = int, choices = [ 15, 16 ],
                        default = 16, help = 'Choose the Microsoft Visual '
                        'Studio version (default: %(default)s).' )
@@ -506,6 +509,11 @@ def GetCmakeArgs( parsed_args ):
 
   if parsed_args.system_boost:
     cmake_args.append( '-DUSE_SYSTEM_BOOST=ON' )
+
+  if parsed_args.system_protobuf:
+    cmake_args.append( '-DUSE_SYSTEM_PROTOBUF=ON' )
+    # We depend on libprotobuf which is not built with -fPIC.
+    cmake_args.append( '-DCMAKE_POSITION_INDEPENDENT_CODE=ON' )
 
   if parsed_args.enable_debug:
     cmake_args.append( '-DCMAKE_BUILD_TYPE=Debug' )

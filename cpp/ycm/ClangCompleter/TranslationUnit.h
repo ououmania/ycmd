@@ -79,6 +79,7 @@ public:
     bool reparse = true );
 
   YCM_EXPORT Location GetDefinitionOrDeclarationLocation(
+    const std::string &project_name,
     const std::string &filename,
     int line,
     int column,
@@ -111,6 +112,14 @@ public:
     const std::vector< UnsavedFile > &unsaved_files,
     bool reparse = true );
 
+  YCM_EXPORT std::vector< Location > GetReferenceLocations(
+    const std::string &project_name,
+    const std::string &filename,
+    int line,
+    int column,
+    const std::vector< UnsavedFile > &unsaved_files,
+    bool reparse = true );
+
   bool LocationIsInSystemHeader( const Location &location );
 
 private:
@@ -131,6 +140,8 @@ private:
   Location GetDeclarationLocationForCursor( CXCursor cursor );
 
   Location GetDefinitionLocationForCursor( CXCursor cursor );
+
+  CXCursor GetDeclarationCursor( CXCursor cursor );
 
   /////////////////////////////
   // PRIVATE MEMBER VARIABLES
