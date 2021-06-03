@@ -16,3 +16,6 @@
 [submodule "third_party/mrab-regex"]
 	path = third_party/mrab-regex
 	url = https://bitbucket.org/mrabarnett/mrab-regex.git
+[submodule "third_party/protobuf"]
+	path = third_party/protobuf
+	url = https://github.com/protocolbuffers/protobuf
