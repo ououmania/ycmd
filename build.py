@@ -623,9 +623,6 @@ def GetCmakeArgs( parsed_args ):
   if parsed_args.system_libclang:
     cmake_args.append( '-DUSE_SYSTEM_LIBCLANG=ON' )
 
-  if parsed_args.system_boost:
-    cmake_args.append( '-DUSE_SYSTEM_BOOST=ON' )
-
   if parsed_args.system_protobuf:
     cmake_args.append( '-DUSE_SYSTEM_PROTOBUF=ON' )
     # We depend on libprotobuf which is not built with -fPIC.
