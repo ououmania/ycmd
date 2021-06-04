@@ -102,10 +102,10 @@ bool Session::send(int msg_id, const google::protobuf::Message &body)
 {
     MessageHead head;
     head.set_msg_id(msg_id);
-    head.set_body_size(body.ByteSize());
+    head.set_body_size(body.ByteSizeLong());
 
     FixedHeader fh;
-    fh.pb_head_size = head.ByteSize();
+    fh.pb_head_size = head.ByteSizeLong();
     fh.msg_size = fh.pb_head_size + body.GetCachedSize();
 
     char buf[8192];
