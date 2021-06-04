@@ -383,8 +383,7 @@ class ClangCompleter( Completer ):
     if not flags:
       raise ValueError( NO_COMPILE_FLAGS_MESSAGE )
 
-    if self._completer.UpdatingTranslationUnit(
-        ToCppStringCompatible( filename ) ):
+    if self._completer.UpdatingTranslationUnit( filename ):
       raise RuntimeError( PARSING_FILE_MESSAGE )
 
     files = self.GetUnsavedFilesVector( request_data )
@@ -398,9 +397,9 @@ class ClangCompleter( Completer ):
       project_name = ''
 
     locations = getattr( self._completer, "GetReferenceLocations" )(
-        ToCppStringCompatible( project_name ),
-        ToCppStringCompatible( filename ),
-        ToCppStringCompatible( request_data[ 'filepath' ] ),
+        project_name,
+        filename,
+        request_data[ 'filepath' ],
         line,
         column,
         files,
