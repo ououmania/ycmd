@@ -78,6 +78,7 @@ public:
     bool reparse = true );
 
   YCM_EXPORT Location GetDefinitionOrDeclarationLocation(
+    const std::string &project_name,
     const std::string &translation_unit,
     const std::string &filename,
     int line,
@@ -114,6 +115,16 @@ public:
     bool reparse = true );
 
   YCM_EXPORT DocumentationData GetDocsForLocationInFile(
+    const std::string &translation_unit,
+    const std::string &filename,
+    int line,
+    int column,
+    const std::vector< UnsavedFile > &unsaved_files,
+    const std::vector< std::string > &flags,
+    bool reparse = true );
+
+  YCM_EXPORT std::vector< Location > GetReferenceLocations(
+    const std::string &project_name,
     const std::string &translation_unit,
     const std::string &filename,
     int line,

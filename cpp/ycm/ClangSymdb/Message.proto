@@ -1,0 +1,92 @@
+syntax="proto3";
+package symdb;
+
+import "General.proto";
+
+message MessageHead {
+    int32 body_size = 1;
+    int32 msg_id = 2;
+}
+
+message CreateProjectReq {
+    string proj_name = 1;
+    string home_dir = 2;
+}
+
+message CreateProjectRsp {
+    string error = 1;
+}
+
+message UpdateProjectReq {
+    string proj_name = 1;
+}
+
+message UpdateProjectRsp {
+    string error = 1;
+}
+
+message DeleteProjectReq {
+    string proj_name = 1;
+}
+
+message DeleteProjectRsp {
+    string error = 1;
+}
+
+message ListProjectReq {
+    int32 unused = 1;
+}
+
+message ListProjectRsp {
+    string error = 1;
+    repeated string proj_names = 2;
+}
+
+message ListProjectFilesReq {
+    string proj_name = 1;
+}
+
+message ListProjectFilesRsp {
+    string error = 1;
+    string home_path = 2;
+    repeated string files = 3;
+}
+
+message GetSymbolDefinitionReq {
+    string proj_name = 1;
+    string symbol = 2;
+    string abs_path = 3;
+}
+
+message GetSymbolDefinitionRsp {
+    string error = 1;
+    repeated PB_Location locations = 2;
+}
+
+message GetSymbolReferencesReq {
+    string proj_name = 1;
+    string symbol = 2;
+    string path = 3;
+}
+
+message GetSymbolReferencesRsp {
+    string error = 1;
+    repeated PB_Location locations = 2;
+}
+
+message ListFileSymbolsReq {
+    string proj_name = 1;
+    string relative_path = 2;
+}
+
+message PB_FileSymbol {
+    string name = 1;
+    int32 line = 2;
+    int32 column = 3;
+}
+
+message ListFileSymbolsRsp {
+    string error = 1;
+    repeated PB_FileSymbol symbols = 2;
+}
+

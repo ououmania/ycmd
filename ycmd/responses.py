@@ -433,3 +433,12 @@ def BuildDebugInfoResponse( name, servers = [], items = [] ):
 
 def BuildSignatureHelpAvailableResponse( value ):
   return { 'available': value }
+
+
+def BuildReferenceResponse( locations ):
+  """Build a response from a list of reference locations. This response
+  does not include the definitions or declarations."""
+  return {
+    'references' : [ BuildLocationData( x ) for x in locations ]
+  }
+

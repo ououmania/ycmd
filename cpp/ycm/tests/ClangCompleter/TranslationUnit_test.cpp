@@ -130,7 +130,7 @@ TEST_F( TranslationUnitTest, GoToDeclarationWorksOnDefinition ) {
                         6,
                         std::vector< UnsavedFile >() );
 
-  EXPECT_EQ( 14, location.line_number_ );
+  EXPECT_EQ( 16, location.line_number_ );
   EXPECT_EQ( 6, location.column_number_ );
   EXPECT_TRUE( !location.filename_.empty() );
 }
@@ -144,16 +144,18 @@ TEST_F( TranslationUnitTest, GoToWorks ) {
                         clang_index_ );
 
   Location location = unit.GetDefinitionOrDeclarationLocation(
+                        "",
                         test_file,
                         16,
                         8,
                         std::vector< UnsavedFile >() );
 
-  EXPECT_EQ( 14, location.line_number_ );
+  EXPECT_EQ( 16, location.line_number_ );
   EXPECT_EQ( 6, location.column_number_ );
   EXPECT_TRUE( !location.filename_.empty() );
 
   location = unit.GetDefinitionOrDeclarationLocation(
+               "",
                test_file,
                14,
                9,
@@ -209,6 +211,7 @@ TEST_F( TranslationUnitTest, InvalidTranslationUnit ) {
 
   EXPECT_EQ( Location(),
              unit.GetDefinitionOrDeclarationLocation(
+               "",
                "",
                1,
                1,

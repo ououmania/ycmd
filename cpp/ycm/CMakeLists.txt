@@ -188,7 +188,8 @@ if ( USE_CLANG_COMPLETER )
   include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/ClangCompleter" )
   add_definitions( -DUSE_CLANG_COMPLETER )
-  file( GLOB add_clang ClangCompleter/*.h ClangCompleter/*.cpp )
+  file( GLOB add_clang ClangCompleter/*.h ClangCompleter/*.cpp
+        ClangSymdb/*.h ClangSymdb/*.cpp)
   list( APPEND SERVER_SOURCES ${add_clang} )
 endif()
 
@@ -319,6 +320,25 @@ endif()
 
 #############################################################################
 
+if ( USE_CLANG_COMPLETER AND NOT LIBCLANG_TARGET )
+     message( FATAL_ERROR "Using Clang completer, but no libclang found. "
+                          "Try setting EXTERNAL_LIBCLANG_PATH or revise "
+                          "your configuration" )
+endif()
+
+if ( USE_CLANG_COMPLETER )
+    include(protobuf.cmake)
+
+    FILE(GLOB PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/ClangSymdb/*.proto)
+
+    set(SYMDB_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ClangSymdb)
+    protobuf_generate_cpp(${SYMDB_SRC_DIR} ${SYMDB_SRC_DIR} PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+
+    list(APPEND SERVER_SOURCES "${PROTO_SRCS}")
+
+    include_directories(${PROTOBUF_INCLUDE_DIR})
+endif()
+
 add_library( ${PROJECT_NAME} SHARED ${SERVER_SOURCES})
 
 if ( ${ABSL_SUPPORTED} )
@@ -345,6 +365,7 @@ target_link_libraries( ${PROJECT_NAME}
                        PUBLIC ${LIBCLANG_TARGET}
                        PUBLIC ${STD_FS_LIB}
                        PUBLIC ${EXTRA_LIBS}
+                       PUBLIC ${PROTOBUF_LIBRARIES}
                      )
 
 if( LIBCLANG_TARGET )

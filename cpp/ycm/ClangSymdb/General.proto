@@ -1,0 +1,9 @@
+syntax="proto3";
+package symdb;
+
+message PB_Location {
+    string path = 1;
+    uint32 line = 2;
+    uint32 column = 3;
+}
+

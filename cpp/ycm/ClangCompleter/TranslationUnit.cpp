@@ -20,6 +20,7 @@
 #include "CompletionData.h"
 #include "TranslationUnit.h"
 #include "Utils.h"
+#include "ClangSymdb/SymdbQuery.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -205,6 +206,22 @@ Location TranslationUnit::GetDeclarationLocationForCursor( CXCursor cursor ) {
   return Location( clang_getCursorLocation( canonical_cursor ) );
 }
 
+CXCursor TranslationUnit::GetDeclarationCursor( CXCursor cursor ) {
+  CXCursor referenced_cursor = clang_getCursorReferenced( cursor );
+
+  if ( !CursorIsValid( referenced_cursor ) ) {
+    return referenced_cursor;
+  }
+
+  CXCursor canonical_cursor = clang_getCanonicalCursor( referenced_cursor );
+
+  if ( !CursorIsValid( canonical_cursor ) ) {
+    return referenced_cursor;
+  }
+
+  return canonical_cursor;
+}
+
 Location TranslationUnit::GetDeclarationLocation(
   const std::string &filename,
   int line,
@@ -266,6 +283,7 @@ Location TranslationUnit::GetDefinitionLocation(
 }
 
 Location TranslationUnit::GetDefinitionOrDeclarationLocation(
+  const std::string &project_name,
   const std::string &filename,
   int line,
   int column,
@@ -303,7 +321,20 @@ Location TranslationUnit::GetDefinitionOrDeclarationLocation(
     return location;
   }
 
-  return GetDeclarationLocationForCursor( cursor );
+  CXCursor declaration_cursor = GetDeclarationCursor( cursor );
+  if (!CursorIsValid(declaration_cursor)) {
+    return Location {};
+  }
+
+  if (!project_name.empty()) {
+    Location symdb_location =
+        symdb::GetDefinitionLocation(project_name, declaration_cursor);
+    if (symdb_location.IsValid()) {
+      return symdb_location;
+    }
+  }
+
+  return Location( clang_getCursorLocation( declaration_cursor ) );
 }
 
 std::string TranslationUnit::GetTypeAtLocation(
@@ -591,6 +622,46 @@ DocumentationData TranslationUnit::GetDocsForLocation(
   }
 
   return DocumentationData( cursor );
+}
+
+std::vector< Location > TranslationUnit::GetReferenceLocations(
+  const std::string &project_name,
+  const std::string &filename,
+  int line,
+  int column,
+  const std::vector<UnsavedFile> &unsaved_files,
+  bool reparse) {
+  if ( reparse ) {
+    Reparse( unsaved_files );
+  }
+
+  if (project_name.empty()) {
+    return std::vector<Location> {};
+  }
+
+  unique_lock< mutex > lock( clang_access_mutex_ );
+
+  if ( !clang_translation_unit_ ) {
+    return std::vector<Location> {};
+  }
+
+  CXCursor cursor = GetCursor( filename, line, column );
+
+  if ( !CursorIsValid( cursor ) ) {
+    return std::vector<Location> {};
+  }
+
+  if ( clang_isCursorDefinition( cursor ) ) {
+    return symdb::GetReferenceLocation(project_name, cursor);
+  }
+
+  // We need the definition cursor to get the USR.
+  CXCursor declaration_cursor = clang_getCursorReferenced( cursor );
+  if ( CursorIsValid( declaration_cursor ) ) {
+    return symdb::GetReferenceLocation(project_name, declaration_cursor);
+  } else {
+    return symdb::GetReferenceLocation(project_name, cursor);
+  }
 }
 
 bool TranslationUnit::LocationIsInSystemHeader( const Location &location ) {

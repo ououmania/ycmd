@@ -478,6 +478,9 @@ def ParseArguments():
                           default=None,
                           help= 'Choose the Microsoft Visual Studio version '
                                 '(default: %(default)s).' )
+  parser.add_argument( '--system-protobuf', action = 'store_true',
+                       help = 'Use system protobuf instead of the one in the '
+                               'third_party directory from github')
   parser.add_argument( '--ninja', action = 'store_true',
                        help = 'Use Ninja build system.' )
   parser.add_argument( '--all',
@@ -619,6 +622,14 @@ def GetCmakeArgs( parsed_args ):
 
   if parsed_args.system_libclang:
     cmake_args.append( '-DUSE_SYSTEM_LIBCLANG=ON' )
+
+  if parsed_args.system_boost:
+    cmake_args.append( '-DUSE_SYSTEM_BOOST=ON' )
+
+  if parsed_args.system_protobuf:
+    cmake_args.append( '-DUSE_SYSTEM_PROTOBUF=ON' )
+    # We depend on libprotobuf which is not built with -fPIC.
+    cmake_args.append( '-DCMAKE_POSITION_INDEPENDENT_CODE=ON' )
 
   if parsed_args.enable_debug:
     cmake_args.append( '-DCMAKE_BUILD_TYPE=Debug' )
