@@ -58,6 +58,10 @@ std::vector<Location> GetReferenceLocation(const std::string &project_name, CXCu
         usr = YouCompleteMe::CXStringToString(clang_getCursorDisplayName(cursor));
     }
 
+    if (usr.empty()) {
+        return std::vector<Location> {};
+    }
+
     symdb::Session session { symdb::kDefaultSockPath };
 
     return session.GetSymbolReferences(project_name, usr, cursor_loc.filename_);
