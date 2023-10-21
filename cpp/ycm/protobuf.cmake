@@ -34,7 +34,7 @@ if(NOT USE_SYSTEM_PROTOBUF)
     # For well-known .proto files distributed with protobuf
     set(PROTOBUF_WELLKNOWN_INCLUDE_DIR "${PROTOBUF_ROOT_DIR}/src")
   else()
-      message(WARNING "System protobuf is not used but PROTOBUF_ROOT_DIR is wrong")
+      message(FATAL_ERROR "System protobuf is not used but PROTOBUF_ROOT_DIR is wrong")
   endif()
 else()
   set(Protobuf_USE_STATIC_LIB ON)
