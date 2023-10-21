@@ -4,6 +4,7 @@ if(NOT USE_SYSTEM_PROTOBUF)
   # Building the protobuf tests require gmock what is not part of a standard protobuf checkout.
   # Disable them unless they are explicitly requested from the cmake command line (when we assume
   # gmock is downloaded to the right location inside protobuf).
+  option(protobuf_INSTALL "Install protobuf binaries and files" OFF)
   option(protobuf_BUILD_TESTS "Build protobuf tests" OFF)
   option(protobuf_BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
   # Disable building protobuf with zlib. Building protobuf with zlib breaks
@@ -18,8 +19,8 @@ if(NOT USE_SYSTEM_PROTOBUF)
   endif()
 
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-  if(EXISTS "${PROTOBUF_ROOT_DIR}/cmake/CMakeLists.txt")
-    add_subdirectory(${PROTOBUF_ROOT_DIR}/cmake third_party/protobuf)
+  if(EXISTS "${PROTOBUF_ROOT_DIR}/CMakeLists.txt")
+    add_subdirectory(${PROTOBUF_ROOT_DIR} third_party/protobuf)
     if(TARGET ${PROTOBUF_LIBRARY_NAME})
       set(PROTOBUF_LIBRARIES ${PROTOBUF_LIBRARY_NAME})
     endif()
