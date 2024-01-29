@@ -441,4 +441,3 @@ def BuildReferenceResponse( locations ):
   return {
     'references' : [ BuildLocationData( x ) for x in locations ]
   }
-

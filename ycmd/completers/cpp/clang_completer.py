@@ -406,8 +406,8 @@ class ClangCompleter( Completer ):
         flags,
         True )
 
-    # don't raise an error if no references: - leave that to the client to respond
-    # in a nice way
+    # don't raise an error if no references: - leave that to the client to
+    # response in a nice way
     return responses.BuildReferenceResponse( locations )
 
 
