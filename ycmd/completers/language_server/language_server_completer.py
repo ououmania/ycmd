@@ -15,27 +15,26 @@
 # You should have received a copy of the GNU General Public License
 # along with ycmd.  If not, see <http://www.gnu.org/licenses/>.
 
-from functools import partial
 import abc
 import collections
 import contextlib
 import json
 import logging
 import os
-import socket
-import time
 import queue
+import socket
 import subprocess
 import threading
+import time
+from functools import partial
+
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
-
 from ycmd import extra_conf_store, responses, utils
 from ycmd.completers.completer import Completer, CompletionsCache
 from ycmd.completers.completer_utils import GetFileContents, GetFileLines
-from ycmd.utils import LOGGER
-
 from ycmd.completers.language_server import language_server_protocol as lsp
+from ycmd.utils import LOGGER
 
 NO_HOVER_INFORMATION = 'No hover information.'
 
@@ -2366,15 +2365,11 @@ class LanguageServerCompleter( Completer ):
       # the settings on the Initialize request are somehow subtly different from
       # the settings supplied in didChangeConfiguration, though it's not exactly
       # clear how/where that is specified.
-      additional_workspace_dirs = self._settings.get(
-                                    'additional_workspace_dirs',
-                                    [] )
-      self._server_workspace_dirs.update( additional_workspace_dirs )
       msg = lsp.Initialize( request_id,
                             self._project_directory,
                             self.ExtraCapabilities(),
                             self._settings.get( 'ls', {} ),
-                            additional_workspace_dirs )
+                            self._server_workspace_dirs )
 
       def response_handler( response, message ):
         if message is None:
