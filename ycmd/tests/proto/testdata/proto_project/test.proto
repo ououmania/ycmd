@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package test;
+
+option go_package = "github.com/test/proto";
+
+// A simple test message
+message Person {
+  string name = 1;
+  int32 age = 2;
+  string email = 3;
+  Address address = 4;
+}
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string country = 3;
+}
+
+message SearchRequest {
+  string query = 1;
+  int32 page_number = 2;
+  int32 result_per_page = 3;
+}
+
+message SearchResponse {
+  repeated Person results = 1;
+}
+
+service SearchService {
+  rpc Search (SearchRequest) returns (SearchResponse);
+  rpc GetPerson (Person) returns (Person);
+}
