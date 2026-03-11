@@ -46,51 +46,24 @@ def _FilterSymbols( query, symbols ):
   return symbols
 
 
-# buf CLI with built-in LSP (replaces deprecated bufls).
-# Fall back to bufls for backward compatibility.
-PATH_TO_BUFLS = os.path.abspath( os.path.join( os.path.dirname( __file__ ),
-  '..', '..', '..', 'third_party', 'go', 'bin',
-  utils.ExecutableName( 'bufls' ) ) )
-
-
-def _FindBuf( user_options ):
-  """Find buf or bufls binary. Prefer buf (has built-in LSP), fall back to
-  legacy bufls."""
-  # 1. User-configured path (bufls_binary_path option)
-  user_path = user_options[ 'bufls_binary_path' ]
-  if user_path:
-    server = utils.FindExecutableWithFallback( user_path, None )
-    if server:
-      return server
-
-  # 2. buf CLI on PATH (has built-in LSP since v1.50+)
-  buf_path = shutil.which( 'buf' )
-  if buf_path:
-    return buf_path
-
-  # 3. Legacy bufls in third_party
-  server = utils.FindExecutableWithFallback( '', PATH_TO_BUFLS )
-  if server:
-    return server
-
-  return None
+def _FindBuf():
+  """Find buf CLI on PATH."""
+  return shutil.which( 'buf' )
 
 
 def ShouldEnableProtoCompleter( user_options ):
-  server = _FindBuf( user_options )
+  server = _FindBuf()
   if server:
     return True
-  utils.LOGGER.info( 'Not enabling proto completer: buf/bufls not found. '
-                     'Install buf CLI or run: python build.py '
-                     '--proto-completer' )
+  utils.LOGGER.info( 'Not enabling proto completer: buf not found. '
+                     'Install buf CLI: https://buf.build/docs/installation' )
   return False
 
 
 class ProtoCompleter( language_server_completer.LanguageServerCompleter ):
   def __init__( self, user_options ):
     super().__init__( user_options )
-    self._buf_path = _FindBuf( user_options )
-    self._buf_name = os.path.basename( self._buf_path )
+    self._buf_path = _FindBuf()
 
 
   def GetServerName( self ):
@@ -98,11 +71,7 @@ class ProtoCompleter( language_server_completer.LanguageServerCompleter ):
 
 
   def GetCommandLine( self ):
-    # buf CLI: `buf lsp serve`
-    # legacy bufls: `bufls serve`
-    if self._buf_name.startswith( 'buf' ) and 'bufls' not in self._buf_name:
-      return [ self._buf_path, 'lsp', 'serve' ]
-    return [ self._buf_path, 'serve' ]
+    return [ self._buf_path, 'lsp', 'serve' ]
 
 
   def GetProjectRootFiles( self ):

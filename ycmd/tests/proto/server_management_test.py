@@ -22,17 +22,15 @@ from unittest import TestCase
 from ycmd.completers.language_server.language_server_completer import (
     LanguageServerConnectionTimeout )
 from ycmd.tests.proto import ( IsolatedYcmd,
-                               PathToTestFile,
-                               StartProtoCompleterServerInDirectory )
+                                PathToTestFile,
+                                StartProtoCompleterServerInDirectory )
 from ycmd.tests.test_utils import ( BuildRequest,
                                     MockProcessTerminationTimingOut,
                                     WaitUntilCompleterServerReady )
 
 
-BUFLS_PATCH = ( 'ycmd.completers.proto.proto_completer.BUFLS_EXECUTABLE',
-                '/usr/local/bin/bufls' )
-FIND_EXE_PATCH = ( 'ycmd.utils.FindExecutableWithFallback',
-                   lambda x, fb: fb )
+BUF_PATCH = ( 'shutil.which', lambda cmd: '/usr/local/bin/buf'
+              if cmd == 'buf' else None )
 
 
 def AssertProtoCompleterServerIsRunning( app, is_running ):
@@ -48,10 +46,9 @@ def AssertProtoCompleterServerIsRunning( app, is_running ):
 
 class ServerManagementTest( TestCase ):
   @IsolatedYcmd()
-  @patch( *BUFLS_PATCH )
-  @patch( *FIND_EXE_PATCH )
+  @patch( *BUF_PATCH )
   def test_ServerManagement_StartServer_Fails( self, app, *args ):
-    """When bufls fails to connect, server is marked as not running."""
+    """When buf lsp fails to connect, server is marked as not running."""
     with patch( 'ycmd.completers.language_server.language_server_completer.'
                 'LanguageServerConnection.AwaitServerConnection',
                 side_effect = LanguageServerConnectionTimeout ):
@@ -77,8 +74,7 @@ class ServerManagementTest( TestCase ):
 
 
   @IsolatedYcmd()
-  @patch( *BUFLS_PATCH )
-  @patch( *FIND_EXE_PATCH )
+  @patch( *BUF_PATCH )
   def test_ServerManagement_StopServer( self, app, *args ):
     """StopServer command marks server as not running."""
     filepath = PathToTestFile( 'proto_project', 'test.proto' )
@@ -102,8 +98,7 @@ class ServerManagementTest( TestCase ):
 
 
   @IsolatedYcmd()
-  @patch( *BUFLS_PATCH )
-  @patch( *FIND_EXE_PATCH )
+  @patch( *BUF_PATCH )
   @patch( 'shutil.rmtree', side_effect = OSError )
   @patch( 'ycmd.utils.WaitUntilProcessIsTerminated',
           MockProcessTerminationTimingOut )

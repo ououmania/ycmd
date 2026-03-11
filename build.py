@@ -490,7 +490,7 @@ def ParseArguments():
                               'completion engine.' ),
   parser.add_argument( '--proto-completer', action = 'store_true',
                        help = 'Enable Protocol Buffers semantic completion '
-                              'engine via bufls.' ),
+                              'engine via buf CLI.' ),
   parser.add_argument( '--system-libclang', action = 'store_true',
                        help = 'Use system libclang instead of downloading one '
                        'from llvm.org. NOT RECOMMENDED OR SUPPORTED!' )
@@ -991,19 +991,12 @@ def EnableGoCompleter( args ):
 
 
 def EnableProtoCompleter( args ):
-  go = FindExecutableOrDie( 'go', 'go is required to install bufls.' )
-
-  new_env = os.environ.copy()
-  new_env[ 'GO111MODULE' ] = 'on'
-  new_env[ 'GOPATH' ] = p.join( DIR_OF_THIS_SCRIPT, 'third_party', 'go' )
-  new_env.pop( 'GOROOT', None )
-  new_env[ 'GOBIN' ] = p.join( new_env[ 'GOPATH' ], 'bin' )
-
-  bufls = 'github.com/bufbuild/buf-language-server/cmd/bufls@latest'
-  CheckCall( [ go, 'install', bufls ],
-             env = new_env,
-             quiet = args.quiet,
-             status_message = 'Installing bufls for proto completion' )
+  buf = shutil.which( 'buf' )
+  if buf:
+    print( f'buf CLI found at { buf }. Proto completer is ready.' )
+  else:
+    print( 'WARNING: buf CLI not found on PATH. '
+           'Install it from https://buf.build/docs/installation' )
 
 def WriteToolchainVersion( version ):
   path = p.join( RUST_ANALYZER_DIR, 'TOOLCHAIN_VERSION' )
