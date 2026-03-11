@@ -21,20 +21,20 @@ from ycmd import utils
 from ycmd.completers.language_server import language_server_completer
 
 
-# bufls is the official Buf language server for Protocol Buffers.
-# Install via: go install github.com/bufbuild/buf-language-server/cmd/bufls@latest
-# or download from https://github.com/bufbuild/buf-language-server
-BUFLS_EXECUTABLE = utils.FindExecutable( 'bufls' )
+# bufls installed by build.py --proto-completer lands in third_party/go/bin/,
+# the same location as gopls.
+PATH_TO_BUFLS = os.path.abspath( os.path.join( os.path.dirname( __file__ ),
+  '..', '..', '..', 'third_party', 'go', 'bin',
+  utils.ExecutableName( 'bufls' ) ) )
 
 
 def ShouldEnableProtoCompleter( user_options ):
   path = user_options[ 'bufls_binary_path' ]
-  server = utils.FindExecutableWithFallback( path, BUFLS_EXECUTABLE )
+  server = utils.FindExecutableWithFallback( path, PATH_TO_BUFLS )
   if server:
     return True
   utils.LOGGER.info( 'Not enabling proto completer: bufls not found. '
-                     'Install with: go install '
-                     'github.com/bufbuild/buf-language-server/cmd/bufls@latest' )
+                     'Install with: python build.py --proto-completer' )
   return False
 
 
@@ -42,7 +42,7 @@ class ProtoCompleter( language_server_completer.LanguageServerCompleter ):
   def __init__( self, user_options ):
     super().__init__( user_options )
     path = user_options[ 'bufls_binary_path' ]
-    self._bufls_path = utils.FindExecutableWithFallback( path, BUFLS_EXECUTABLE )
+    self._bufls_path = utils.FindExecutableWithFallback( path, PATH_TO_BUFLS )
 
 
   def GetServerName( self ):

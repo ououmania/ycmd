@@ -488,6 +488,9 @@ def ParseArguments():
   parser.add_argument( '--ts-completer', action = 'store_true',
                        help = 'Enable JavaScript and TypeScript semantic '
                               'completion engine.' ),
+  parser.add_argument( '--proto-completer', action = 'store_true',
+                       help = 'Enable Protocol Buffers semantic completion '
+                              'engine via bufls.' ),
   parser.add_argument( '--system-libclang', action = 'store_true',
                        help = 'Use system libclang instead of downloading one '
                        'from llvm.org. NOT RECOMMENDED OR SUPPORTED!' )
@@ -987,6 +990,21 @@ def EnableGoCompleter( args ):
                status_message = 'Trying legacy get get' ) )
 
 
+def EnableProtoCompleter( args ):
+  go = FindExecutableOrDie( 'go', 'go is required to install bufls.' )
+
+  new_env = os.environ.copy()
+  new_env[ 'GO111MODULE' ] = 'on'
+  new_env[ 'GOPATH' ] = p.join( DIR_OF_THIS_SCRIPT, 'third_party', 'go' )
+  new_env.pop( 'GOROOT', None )
+  new_env[ 'GOBIN' ] = p.join( new_env[ 'GOPATH' ], 'bin' )
+
+  bufls = 'github.com/bufbuild/buf-language-server/cmd/bufls@latest'
+  CheckCall( [ go, 'install', bufls ],
+             env = new_env,
+             quiet = args.quiet,
+             status_message = 'Installing bufls for proto completion' )
+
 def WriteToolchainVersion( version ):
   path = p.join( RUST_ANALYZER_DIR, 'TOOLCHAIN_VERSION' )
   with open( path, 'w' ) as f:
@@ -1367,6 +1385,8 @@ def Main(): # noqa: C901
       EnableTypeScriptCompleter( args )
     if args.clangd_completer or args.all_completers:
       EnableClangdCompleter( args )
+    if args.proto_completer or args.all_completers:
+      EnableProtoCompleter( args )
   except InstallationFailed as e:
     e.Print()
     if args.quiet:
