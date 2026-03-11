@@ -585,8 +585,19 @@ class LanguageServerConnection( threading.Thread ):
         for watcher in reg[ 'registerOptions' ][ 'watchers' ]:
           # TODO: Take care of watcher kinds. Not everything needs
           # to be watched for create, modify *and* delete actions.
-          pattern = os.path.join( self._project_directory,
-                                  watcher[ 'globPattern' ] )
+
+          base, pattern = self._project_directory, watcher[ 'globPattern' ]
+          if isinstance( pattern, dict ):
+            # RelativePattern
+            base, pattern = (
+              watcher[ 'globPattern' ][ 'baseUri' ],
+              watcher[ 'globPattern' ][ 'pattern' ]
+            )
+          if isinstance( base, dict ):
+            # WorkspaceFolder
+            base = base[ 'uri' ]
+
+          pattern = os.path.join( base, pattern )
           if os.path.isdir( pattern ):
             pattern = os.path.join( pattern, '**' )
           globs.append( pattern )
@@ -1889,7 +1900,7 @@ class LanguageServerCompleter( Completer ):
 
       # Merge any user-supplied 'ls' settings with the defaults
       if 'ls' in user_settings:
-        merged_ls_settings.update( user_settings[ 'ls' ] )
+        utils.UpdateDict( merged_ls_settings, user_settings[ 'ls' ] )
 
       user_settings[ 'ls' ] = merged_ls_settings
       self._settings = user_settings

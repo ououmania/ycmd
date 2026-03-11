@@ -39,8 +39,8 @@ IS_MSYS = 'MSYS' == os.environ.get( 'MSYSTEM' )
 IS_64BIT = sys.maxsize > 2**32
 PY_MAJOR, PY_MINOR = sys.version_info[ 0 : 2 ]
 PY_VERSION = sys.version_info[ 0 : 3 ]
-if PY_VERSION < ( 3, 8, 0 ):
-  sys.exit( 'ycmd requires Python >= 3.8.0; '
+if PY_VERSION < ( 3, 12, 0 ):
+  sys.exit( 'ycmd requires Python >= 3.12.0; '
             'your version of Python is ' + sys.version +
             '\nHint: Try running python3 ' + ' '.join( sys.argv ) )
 
@@ -89,13 +89,14 @@ DYNAMIC_PYTHON_LIBRARY_REGEX = """
   )$
 """
 
-JDTLS_MILESTONE = '1.40.0'
-JDTLS_BUILD_STAMP = '202409261450'
+JDTLS_REQUIRED_JAVA_VERSION = 21
+JDTLS_MILESTONE = '1.51.0'
+JDTLS_BUILD_STAMP = '202510022025'
 JDTLS_SHA256 = (
-  '7416fc62befa450e32f06ec2b503f2eec5f22f0b1cc12f7b8ee5112bf671cf11'
+  '8a59372117881bf5bdc0220f2254472846b88137c058f344b00a7d41427745a1'
 )
 
-DEFAULT_RUST_TOOLCHAIN = 'stable'
+DEFAULT_RUST_TOOLCHAIN = '1.91.1'
 RUST_ANALYZER_DIR = p.join( DIR_OF_THIRD_PARTY, 'rust-analyzer' )
 
 BUILD_ERROR_MESSAGE = (
@@ -114,7 +115,7 @@ CLANGD_BINARIES_ERROR_MESSAGE = (
   'or use your system Clangd. '
   'See the YCM docs for details on how to use a custom Clangd.' )
 
-ACCEPTABLE_MSVC_VERSIONS = [ 17, 16, 15 ]
+ACCEPTABLE_MSVC_VERSIONS = [ 18, 17, 16, 15 ]
 
 
 def UseVsWhere( quiet, vswhere_args ):
@@ -131,7 +132,7 @@ def UseVsWhere( quiet, vswhere_args ):
       print( f'vswhere -latest returned version { latest_full_v }' )
 
     if latest_v not in ACCEPTABLE_MSVC_VERSIONS:
-      if latest_v > 17:
+      if latest_v > 18:
         if not quiet:
           print( f'MSVC Version { latest_full_v } is newer than expected.' )
       else:
@@ -454,6 +455,8 @@ def GetGenerator( args ):
       return 'Visual Studio 16'
     if args.msvc == 17:
       return 'Visual Studio 17 2022'
+    if args.msvc == 18:
+      return 'Visual Studio 18 2026'
     return f"Visual Studio { args.msvc }{ ' Win64' if IS_64BIT else '' }"
   return 'Unix Makefiles'
 
@@ -1118,7 +1121,7 @@ def EnableJavaCompleter( switches ):
     sys.stdout.write( 'Installing jdt.ls for Java support...' )
     sys.stdout.flush()
 
-  CheckJavaVersion( 17 )
+  CheckJavaVersion( JDTLS_REQUIRED_JAVA_VERSION )
 
   TARGET = p.join( DIR_OF_THIRD_PARTY, 'eclipse.jdt.ls', 'target', )
   REPOSITORY = p.join( TARGET, 'repository' )
