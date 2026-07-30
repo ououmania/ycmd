@@ -287,6 +287,12 @@ def BuildNotification( method, parameters ):
   } )
 
 
+def BuildCancelRequest( request_id ):
+  """Builds a $/cancelRequest notification to cancel the in-flight request with
+  the given |request_id|."""
+  return BuildNotification( '$/cancelRequest', { 'id': request_id } )
+
+
 def BuildResponse( request, parameters ):
   """Builds a JSON RPC response message to respond to the supplied |request|
   message. |parameters| should contain either 'error' or 'result'"""

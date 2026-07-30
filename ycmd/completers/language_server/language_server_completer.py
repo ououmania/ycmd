@@ -182,6 +182,7 @@ class Response:
     self._event = threading.Event()
     self._message = None
     self._response_callback = response_callback
+    self._cancelled = False
 
 
   def ResponseReceived( self, message ):
@@ -199,17 +200,27 @@ class Response:
     self.ResponseReceived( None )
 
 
+  def Cancel( self ):
+    """Called to cancel a pending request. Wakes up AwaitResponse immediately."""
+    self._cancelled = True
+    self._event.set()
+
+
   def AwaitResponse( self, timeout ):
     """Called by clients to wait synchronously for either a response to be
     received or for |timeout| seconds to have passed.
     Returns the message, or:
         - throws ResponseFailedException if the request fails
         - throws ResponseTimeoutException in case of timeout
-        - throws ResponseAbortedException in case the server is shut down."""
+        - throws ResponseAbortedException in case the server is shut down or the
+          request was cancelled."""
     self._event.wait( timeout )
 
     if not self._event.is_set():
       raise ResponseTimeoutException( 'Response Timeout' )
+
+    if self._cancelled:
+      raise ResponseAbortedException( 'Response Cancelled' )
 
     if self._message is None:
       raise ResponseAbortedException( 'Response Aborted' )
@@ -448,6 +459,19 @@ class LanguageServerConnection( threading.Thread ):
     LOGGER.debug( 'TX: Sending notification: %r', message )
 
     self.WriteData( message )
+
+
+  def CancelRequest( self, request_id ):
+    """Cancel the in-flight request identified by |request_id|. Wakes up any
+    thread blocked in AwaitResponse for that request and sends $/cancelRequest
+    to the language server so it can also abort processing."""
+    with self._response_mutex:
+      if request_id not in self._responses:
+        return
+      self._responses[ request_id ].Cancel()
+      # Leave the entry in _responses so _DispatchMessage can clean it up
+      # normally when (if) the server still sends a response.
+    self.SendNotification( lsp.BuildCancelRequest( request_id ) )
 
 
   def SendResponse( self, message ):
@@ -1029,6 +1053,9 @@ class LanguageServerCompleter( Completer ):
     self._server_started = False
 
     self._Reset()
+
+    self._current_command_request_id = None
+    self._current_command_mutex = threading.Lock()
 
 
   def _Reset( self ):
@@ -2145,6 +2172,21 @@ class LanguageServerCompleter( Completer ):
                   'Server reported: %s',
                   params[ 'message' ] )
 
+    if notification[ 'method' ] == '$/progress':
+      params = notification.get( 'params', {} )
+      value = params.get( 'value', {} )
+      kind = value.get( 'kind', '' )
+      if kind in ( 'begin', 'report', 'end' ):
+        return {
+          'lsp_progress': {
+            'kind': kind,
+            'token': params.get( 'token', '' ),
+            'title': value.get( 'title', '' ),
+            'message': value.get( 'message', '' ),
+            'percentage': value.get( 'percentage' ),
+          }
+        }
+
     return None
 
 
@@ -2589,18 +2631,34 @@ class LanguageServerCompleter( Completer ):
 
   def _GoToRequest( self, request_data, handler ):
     request_id = self.GetConnection().NextRequestId()
+    with self._current_command_mutex:
+      self._current_command_request_id = request_id
 
     try:
       result = self.GetConnection().GetResponse(
         request_id,
         getattr( lsp, handler )( request_id, request_data ),
         REQUEST_TIMEOUT_COMMAND )[ 'result' ]
-    except ResponseFailedException:
+    except ( ResponseFailedException, ResponseAbortedException ):
       result = None
+    finally:
+      with self._current_command_mutex:
+        if self._current_command_request_id == request_id:
+          self._current_command_request_id = None
 
     if result and not isinstance( result, list ):
       return [ result ]
     return result
+
+
+  def CancelLastCommand( self ):
+    """Cancel the most recently issued command request (e.g. GoTo). Sends
+    $/cancelRequest to the language server and immediately unblocks any thread
+    waiting for the response."""
+    with self._current_command_mutex:
+      request_id = self._current_command_request_id
+    if request_id is not None:
+      self.GetConnection().CancelRequest( request_id )
 
 
   def GoTo( self, request_data, handlers ):

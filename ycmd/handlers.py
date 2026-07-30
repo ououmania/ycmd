@@ -91,6 +91,17 @@ def RunCompleterCommand( request, response ):
       request_data ), response )
 
 
+@app.post( '/cancel_last_command' )
+def CancelLastCommand( request, response ):
+  request_data = RequestWrap( request.json )
+  try:
+    completer = _GetCompleterForRequestData( request_data )
+    completer.CancelLastCommand()
+  except Exception:
+    pass
+  return _JsonResponse( True, response )
+
+
 @app.post( '/resolve_fixit' )
 def ResolveFixit( request, response ):
   request_data = RequestWrap( request.json )
