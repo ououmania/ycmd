@@ -2566,25 +2566,31 @@ class LanguageServerCompleter( Completer ):
                        ','.join( trigger_characters ) )
           self.SetSignatureHelpTriggers( trigger_characters )
 
-      # We must notify the server that we received the initialize response (for
-      # no apparent reason, other than that's what the protocol says).
-      self.GetConnection().SendNotification( lsp.Initialized() )
-
-      # Some language servers require the use of didChangeConfiguration event,
-      # even though it is not clear in the specification that it is mandatory,
-      # nor when it should be sent.  VSCode sends it immediately after
-      # initialized notification, so we do the same.
-
-      # FIXME: According to
-      # https://github.com/Microsoft/language-server-protocol/issues/567 the
-      # configuration should be send in response to a workspace/configuration
-      # request?
-      self.GetConnection().SendNotification(
-          lsp.DidChangeConfiguration( self._settings.get( 'ls', {} ) ) )
-
       # Notify the other threads that we have completed the initialize exchange.
       self._initialize_response = None
       self._initialize_event.set()
+      # Read ls settings under the lock so we can use it safely outside.
+      ls_settings = self._settings.get( 'ls', {} )
+
+    # Send notifications outside the mutex: WriteData can block if the LSP
+    # server's stdin pipe is full, which would cause a deadlock if an HTTP
+    # handler thread is waiting to acquire _server_info_mutex concurrently.
+
+    # We must notify the server that we received the initialize response (for
+    # no apparent reason, other than that's what the protocol says).
+    self.GetConnection().SendNotification( lsp.Initialized() )
+
+    # Some language servers require the use of didChangeConfiguration event,
+    # even though it is not clear in the specification that it is mandatory,
+    # nor when it should be sent.  VSCode sends it immediately after
+    # initialized notification, so we do the same.
+
+    # FIXME: According to
+    # https://github.com/Microsoft/language-server-protocol/issues/567 the
+    # configuration should be send in response to a workspace/configuration
+    # request?
+    self.GetConnection().SendNotification(
+        lsp.DidChangeConfiguration( ls_settings ) )
 
     # Fire any events that are pending on the completion of the initialize
     # exchange. Typically, this will be calls to _UpdateServerWithFileContents

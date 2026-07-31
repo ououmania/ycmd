@@ -32,6 +32,8 @@ from hamcrest import ( all_of,
                        is_not,
                        raises )
 
+import threading
+
 from ycmd.completers import completer
 from ycmd.completers.language_server import language_server_completer as lsc
 from ycmd.completers.language_server.language_server_completer import (
@@ -1554,6 +1556,77 @@ class LanguageServerCompleterTest( TestCase ):
                       uri_to_filepath:
         assert_that( completer.OnFileReadyToParse( request_data ), diagnostics )
         uri_to_filepath.assert_called()
+
+
+  @IsolatedYcmd()
+  def test_HandleInitializeInPollThread_MutexNotHeldDuringSendNotification(
+      self, app ):
+    """Regression: _HandleInitializeInPollThread must not hold _server_info_mutex
+    while calling SendNotification; otherwise a blocking WriteData in the poll
+    thread deadlocks HTTP-handler threads waiting on the same mutex."""
+    completer = MockCompleter()
+
+    write_started = threading.Event()
+    write_can_finish = threading.Event()
+
+    connection = completer.GetConnection()
+
+    def blocking_write( data ):
+      write_started.set()
+      write_can_finish.wait( timeout = 5.0 )
+
+    connection.WriteData = blocking_write
+
+    poll_thread = threading.Thread(
+      target = completer._HandleInitializeInPollThread,
+      args = ( { 'result': { 'capabilities': {} } }, ) )
+    poll_thread.start()
+
+    assert_that( write_started.wait( timeout = 2.0 ), equal_to( True ) )
+
+    # Before fix: mutex IS held inside the with-block during WriteData → False
+    # After fix:  mutex NOT held (WriteData outside with-block) → True
+    mutex_free = completer._server_info_mutex.acquire( blocking = False )
+    if mutex_free:
+      completer._server_info_mutex.release()
+
+    write_can_finish.set()
+    poll_thread.join( timeout = 2.0 )
+
+    assert_that( mutex_free, equal_to( True ) )
+
+
+  @IsolatedYcmd()
+  def test_CancelLastCommand_ImmediatelyUnblocksGoToRequest( self, app ):
+    """CancelLastCommand must unblock a pending _GoToRequest right away,
+    not wait for the 30-second REQUEST_TIMEOUT_COMMAND to expire."""
+    completer = MockCompleter()
+    request_data = RequestWrap( BuildRequest() )
+
+    request_registered = threading.Event()
+    connection = completer.GetConnection()
+
+    def signaling_write( data ):
+      request_registered.set()
+
+    connection.WriteData = signaling_write
+
+    result_holder = [ None ]
+
+    def run_goto():
+      result_holder[ 0 ] = completer._GoToRequest( request_data, 'Definition' )
+
+    goto_thread = threading.Thread( target = run_goto )
+    goto_thread.start()
+
+    assert_that( request_registered.wait( timeout = 2.0 ), equal_to( True ) )
+
+    completer.CancelLastCommand()
+
+    goto_thread.join( timeout = 2.0 )
+
+    assert_that( goto_thread.is_alive(), equal_to( False ) )
+    assert_that( result_holder[ 0 ], equal_to( None ) )
 
 
   def test_LanguageServerCompleter_DistanceOfPointToRange_SingleLineRange(
