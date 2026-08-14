@@ -443,6 +443,13 @@ if ( CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQU
   target_compile_options( ${PROJECT_NAME} PRIVATE "-Wno-bidi-chars" )
 endif()
 
+# Suppress bidi-chars warning for CodePoint.cpp which includes UnicodeTable.inc
+set_source_files_properties(
+  CodePoint.cpp
+  PROPERTIES
+  COMPILE_FLAGS "-Wno-bidi-chars"
+)
+
 #############################################################################
 
 if( SYSTEM_IS_SUNOS )

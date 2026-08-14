@@ -49,7 +49,10 @@ int GetCodePointLength( uint8_t leading_byte ) {
 
 
 RawCodePoint FindCodePoint( std::string_view text ) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wbidi-chars"
 #include "UnicodeTable.inc"
+#pragma GCC diagnostic pop
 
   // Do a binary search on the array of code points to find the raw code point
   // corresponding to the text. If no code point is found, return the default
