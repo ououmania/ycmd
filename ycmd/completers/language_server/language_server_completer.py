@@ -656,6 +656,8 @@ class LanguageServerConnection( threading.Thread ):
         self.SendResponse(
           lsp.Accept( request,
                       lsp.WorkspaceFolders( *self._server_workspace_dirs ) ) )
+      elif method == 'window/workDoneProgress/create':
+        self.SendResponse( lsp.Void( request ) )
       else: # method unknown - reject
         self.SendResponse( lsp.Reject( request, lsp.Errors.MethodNotFound ) )
       return
@@ -2177,15 +2179,14 @@ class LanguageServerCompleter( Completer ):
       value = params.get( 'value', {} )
       kind = value.get( 'kind', '' )
       if kind in ( 'begin', 'report', 'end' ):
-        return {
-          'lsp_progress': {
-            'kind': kind,
-            'token': params.get( 'token', '' ),
-            'title': value.get( 'title', '' ),
-            'message': value.get( 'message', '' ),
-            'percentage': value.get( 'percentage' ),
-          }
+        lsp_progress = {
+          'kind': kind,
+          'token': params.get( 'token', '' ),
         }
+        for field in ( 'title', 'message', 'percentage' ):
+          if field in value:
+            lsp_progress[ field ] = value[ field ]
+        return { 'lsp_progress': lsp_progress }
 
     return None
 
@@ -2645,7 +2646,7 @@ class LanguageServerCompleter( Completer ):
         request_id,
         getattr( lsp, handler )( request_id, request_data ),
         REQUEST_TIMEOUT_COMMAND )[ 'result' ]
-    except ( ResponseFailedException, ResponseAbortedException ):
+    except ( ResponseFailedException, ResponseAbortedException, ResponseTimeoutException ):
       result = None
     finally:
       with self._current_command_mutex:
