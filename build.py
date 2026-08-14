@@ -910,7 +910,7 @@ def ExtractCsCompleter( writeStdout, build_dir, package_path ):
       package_zip.extractall()
   else:
     with tarfile.open( package_path ) as package_tar:
-      package_tar.extractall()
+      package_tar.extractall( filter = 'data' )
   writeStdout( 'DONE\n' )
 
 
@@ -1170,7 +1170,7 @@ def EnableJavaCompleter( switches ):
 
   Print( f"Extracting jdt.ls to { REPOSITORY }..." )
   with tarfile.open( file_name ) as package_tar:
-    package_tar.extractall( REPOSITORY )
+    package_tar.extractall( REPOSITORY, filter = 'data' )
 
   Print( "Done installing jdt.ls" )
 
@@ -1254,7 +1254,7 @@ def DownloadClangd( printer ):
 
   printer( f"Extracting Clangd to { CLANGD_OUTPUT_DIR }..." )
   with tarfile.open( file_name ) as package_tar:
-    package_tar.extractall( CLANGD_OUTPUT_DIR )
+    package_tar.extractall( CLANGD_OUTPUT_DIR, filter = 'data' )
 
   printer( "Done installing Clangd" )
 
