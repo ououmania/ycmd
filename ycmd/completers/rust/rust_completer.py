@@ -155,18 +155,41 @@ class RustCompleter( language_server_completer.LanguageServerCompleter ):
 
 
   def ConvertNotificationToMessage( self, request_data, notification ):
+    # rust-analyzer's experimental/serverStatus and rust-analyzer/status are
+    # custom status notifications (not $/progress), so they carry no token.
+    # We bridge them onto the client's progress display using a fixed,
+    # client-side-only token. There is only ever one such status stream per
+    # completer, so a constant token lets `begin` and `end` match up exactly
+    # and is unrelated to rust-analyzer's own $/progress tokens (e.g.
+    # 'rust-analyzer/roots').
     if notification[ 'method' ] == 'experimental/serverStatus':
-      message = notification[ 'params' ][ 'health' ]
-      if message != 'ok' and notification[ 'params' ][ 'message' ] is not None:
-        message += ' - ' + notification[ 'params' ][ 'message' ]
-      return responses.BuildDisplayMessageResponse(
-        f'Initializing Rust completer: { message }' )
+      params = notification[ 'params' ]
+      token = 'rust-analyzer/status'
+      if params[ 'quiescent' ]:
+        return { 'lsp_progress': { 'kind': 'end', 'token': token } }
+      message = params[ 'health' ]
+      if message != 'ok' and params[ 'message' ] is not None:
+        message += ' - ' + params[ 'message' ]
+      return {
+        'lsp_progress': {
+          'kind': 'begin',
+          'token': token,
+          'title': 'Initializing Rust completer',
+          'message': message,
+        },
+      }
     # TODO: Once rustup catches up, we should drop this notification.
     if notification[ 'method' ] == 'rust-analyzer/status':
       message = notification[ 'params' ]
       if message != 'invalid': # RA produces a better message for `invalid`
-        return responses.BuildDisplayMessageResponse(
-          f'Initializing Rust completer: { message }' )
+        return {
+          'lsp_progress': {
+            'kind': 'begin',
+            'token': 'rust-analyzer/status',
+            'title': 'Initializing Rust completer',
+            'message': message,
+          },
+        }
     return super().ConvertNotificationToMessage( request_data, notification )
 
 

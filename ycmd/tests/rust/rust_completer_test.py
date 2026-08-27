@@ -17,12 +17,15 @@
 
 import os
 from unittest.mock import patch
-from hamcrest import assert_that, equal_to
+from hamcrest import assert_that, equal_to, has_entries
 from unittest import TestCase
 
 from ycmd import user_options_store
 from ycmd.completers.rust.hook import GetCompleter
+from ycmd.completers.rust.rust_completer import RustCompleter
+from ycmd.request_wrap import RequestWrap
 from ycmd.tests.rust import setUpModule, tearDownModule # noqa
+from ycmd.tests.test_utils import BuildRequest
 
 
 class RustCompleterTest( TestCase ):
@@ -61,3 +64,83 @@ class RustCompleterTest( TestCase ):
     GetCompleter( user_options )
     logger.warning.assert_called_with(
         'rls_binary_path detected. Did you mean rust_toolchain_root?' )
+
+
+  def _MockRustCompleter( self ):
+    # Bypass __init__ (which requires a real rust-analyzer binary) to exercise
+    # ConvertNotificationToMessage in isolation.
+    completer = object.__new__( RustCompleter )
+    completer._server_progress = 'Not started'
+    return completer
+
+
+  def test_ConvertNotification_ServerStatus_Loading( self ):
+    completer = self._MockRustCompleter()
+    request_data = RequestWrap( BuildRequest() )
+    notification = {
+      'method': 'experimental/serverStatus',
+      'params': {
+        'health': 'loading',
+        'quiescent': False,
+        'message': None,
+      },
+    }
+    assert_that( completer.ConvertNotificationToMessage( request_data,
+                                                         notification ),
+                 has_entries( {
+                   'lsp_progress': has_entries( {
+                     'kind': 'begin',
+                     'token': 'rust-analyzer/status',
+                   } ),
+                 } ) )
+
+
+  def test_ConvertNotification_ServerStatus_Quiescent( self ):
+    completer = self._MockRustCompleter()
+    request_data = RequestWrap( BuildRequest() )
+    notification = {
+      'method': 'experimental/serverStatus',
+      'params': {
+        'health': 'ok',
+        'quiescent': True,
+        'message': None,
+      },
+    }
+    assert_that( completer.ConvertNotificationToMessage( request_data,
+                                                         notification ),
+                 has_entries( {
+                   'lsp_progress': has_entries( {
+                     'kind': 'end',
+                     'token': 'rust-analyzer/status',
+                   } ),
+                 } ) )
+
+
+  def test_ConvertNotification_Status_Loading( self ):
+    completer = self._MockRustCompleter()
+    request_data = RequestWrap( BuildRequest() )
+    notification = {
+      'method': 'rust-analyzer/status',
+      'params': 'loading',
+    }
+    assert_that( completer.ConvertNotificationToMessage( request_data,
+                                                         notification ),
+                 has_entries( {
+                   'lsp_progress': has_entries( {
+                     'kind': 'begin',
+                     'token': 'rust-analyzer/status',
+                   } ),
+                 } ) )
+
+
+  def test_ConvertNotification_Status_Invalid( self ):
+    completer = self._MockRustCompleter()
+    request_data = RequestWrap( BuildRequest() )
+    notification = {
+      'method': 'rust-analyzer/status',
+      'params': 'invalid',
+    }
+    # 'invalid' is delegated to the base class, which ignores it (returns None).
+    assert_that( completer.ConvertNotificationToMessage( request_data,
+                                                         notification ),
+                 equal_to( None ) )
