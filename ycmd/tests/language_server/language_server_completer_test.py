@@ -772,6 +772,70 @@ class LanguageServerCompleterTest( TestCase ):
 
 
   @IsolatedYcmd()
+  def test_LanguageServerCompleter_ShowMessage_Error( self, app ):
+    completer = MockCompleter()
+    request_data = RequestWrap( BuildRequest() )
+    notification = {
+      'method': 'window/showMessage',
+      'params': {
+        'type': 1,
+        'message': 'this is an error'
+      }
+    }
+    assert_that( completer.ConvertNotificationToMessage( request_data,
+                                                         notification ),
+                 has_entries( { 'message': 'this is an error' } ) )
+
+
+  @IsolatedYcmd()
+  def test_LanguageServerCompleter_ShowMessage_Warning( self, app ):
+    completer = MockCompleter()
+    request_data = RequestWrap( BuildRequest() )
+    notification = {
+      'method': 'window/showMessage',
+      'params': {
+        'type': 2,
+        'message': 'this is a warning'
+      }
+    }
+    assert_that( completer.ConvertNotificationToMessage( request_data,
+                                                         notification ),
+                 has_entries( { 'message': 'this is a warning' } ) )
+
+
+  @IsolatedYcmd()
+  def test_LanguageServerCompleter_ShowMessage_Info( self, app ):
+    completer = MockCompleter()
+    request_data = RequestWrap( BuildRequest() )
+    notification = {
+      'method': 'window/showMessage',
+      'params': {
+        'type': 3,
+        'message': 'this is info'
+      }
+    }
+    assert_that( completer.ConvertNotificationToMessage( request_data,
+                                                         notification ),
+                 equal_to( None ) )
+
+
+  @IsolatedYcmd()
+  def test_LanguageServerCompleter_ShowMessage_Log( self, app ):
+    completer = MockCompleter()
+    request_data = RequestWrap( BuildRequest() )
+    notification = {
+      'method': 'window/showMessage',
+      'params': {
+        'type': 4,
+        'message': 'this is a log'
+      }
+    }
+    assert_that( completer.ConvertNotificationToMessage( request_data,
+                                                         notification ),
+                 equal_to( None ) )
+
+
+  @IsolatedYcmd()
   def test_LanguageServerCompleter_GetCompletions_List( self, app ):
     completer = MockCompleter()
     request_data = RequestWrap( BuildRequest() )

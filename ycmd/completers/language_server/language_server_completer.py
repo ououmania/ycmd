@@ -2133,8 +2133,14 @@ class LanguageServerCompleter( Completer ):
     must always call the base implementation for unrecognized notifications."""
 
     if notification[ 'method' ] == 'window/showMessage':
-      return responses.BuildDisplayMessageResponse(
-        notification[ 'params' ][ 'message' ] )
+      params = notification[ 'params' ]
+      # LSP MessageType: 1=Error, 2=Warning, 3=Info, 4=Log. Info and Log
+      # messages are informational and shouldn't interrupt the user, so we
+      # silently ignore them. Error and Warning (or an absent type, for
+      # servers that don't populate it) are shown as usual.
+      if params.get( 'type' ) in ( 3, 4 ):
+        return None
+      return responses.BuildDisplayMessageResponse( params[ 'message' ] )
 
     if notification[ 'method' ] == 'textDocument/publishDiagnostics':
       params = notification[ 'params' ]
