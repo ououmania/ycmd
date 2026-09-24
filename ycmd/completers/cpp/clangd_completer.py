@@ -223,6 +223,9 @@ class ClangdCompleter( language_server_completer.LanguageServerCompleter ):
 
     self._clangd_command = GetClangdCommand( user_options )
     self._use_ycmd_caching = user_options[ 'clangd_uses_ycmd_caching' ]
+    self._project_directory = user_options[ 'clangd_project_directory' ]
+    self._compilation_database_dir = user_options[
+        'clangd_compilation_database_dir' ]
     self._compilation_commands = {}
 
     self.RegisterOnFileReadyToParse(
@@ -249,6 +252,14 @@ class ClangdCompleter( language_server_completer.LanguageServerCompleter ):
 
   def Language( self ):
     return 'cfamily'
+
+
+  def GetProjectDirectory( self, request_data ):
+    if self._project_directory:
+      return self._project_directory
+    if self._compilation_database_dir:
+      return self._compilation_database_dir
+    return super().GetProjectDirectory( request_data )
 
 
   def SupportedFiletypes( self ):

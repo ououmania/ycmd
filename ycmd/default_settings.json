@@ -36,6 +36,7 @@
   "clangd_args": [],
   "clangd_uses_ycmd_caching": 1,
   "clangd_compilation_database_dir": "",
+  "clangd_project_directory": "",
   "disable_signature_help": 0,
   "gopls_binary_path": "",
   "gopls_args": [],
