@@ -164,7 +164,8 @@ def GetClangdCommand( user_options ):
 
   compilation_database_dir = user_options[ 'clangd_compilation_database_dir' ]
   if compilation_database_dir:
-    CLANGD_COMMAND.append( '--compile-commands-dir=' + compilation_database_dir )
+    CLANGD_COMMAND.append( '--compile-commands-dir='
+                           + compilation_database_dir )
 
   return CLANGD_COMMAND
 

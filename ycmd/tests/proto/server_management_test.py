@@ -24,7 +24,7 @@ from ycmd.completers.language_server.language_server_completer import (
 from ycmd.tests.proto import ( IsolatedYcmd,
                                 PathToTestFile,
                                 StartProtoCompleterServerInDirectory )
-from ycmd.tests.test_utils import ( BuildRequest,
+from ycmd.tests.test_utils import ( BuildRequest,  # noqa: F401
                                     MockProcessTerminationTimingOut,
                                     WaitUntilCompleterServerReady )
 
@@ -102,8 +102,10 @@ class ServerManagementTest( TestCase ):
   @patch( 'shutil.rmtree', side_effect = OSError )
   @patch( 'ycmd.utils.WaitUntilProcessIsTerminated',
           MockProcessTerminationTimingOut )
-  def test_ServerManagement_CloseServer_Unclean( self, app, *args ):
-    """Unclean server shutdown (e.g. process won't die) is handled gracefully."""
+  def test_ServerManagement_CloseServer_Unclean(
+      self, app, *args ):
+    """Unclean server shutdown (e.g. process won't die) is handled
+    gracefully."""
     with patch( 'ycmd.completers.language_server.language_server_completer.'
                 'LanguageServerConnection.AwaitServerConnection',
                 side_effect = LanguageServerConnectionTimeout ):

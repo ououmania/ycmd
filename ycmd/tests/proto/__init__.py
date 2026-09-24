@@ -19,8 +19,6 @@ import functools
 import os
 
 from ycmd.tests.test_utils import ( BuildRequest,
-                                    ClearCompletionsCache,
-                                    IgnoreExtraConfOutsideTestsFolder,
                                     IsolatedApp,
                                     StopCompleterServer,
                                     WaitUntilCompleterServerReady ) # noqa

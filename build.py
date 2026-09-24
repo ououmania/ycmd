@@ -501,7 +501,7 @@ def ParseArguments():
                                 '(default: %(default)s).' )
   parser.add_argument( '--system-protobuf', action = 'store_true',
                        help = 'Use system protobuf instead of the one in the '
-                               'third_party directory from github')
+                               'third_party directory from github' )
   parser.add_argument( '--ninja', action = 'store_true',
                        help = 'Use Ninja build system.' )
   parser.add_argument( '--all',
@@ -997,6 +997,7 @@ def EnableProtoCompleter( args ):
   else:
     print( 'WARNING: buf CLI not found on PATH. '
            'Install it from https://buf.build/docs/installation' )
+
 
 def WriteToolchainVersion( version ):
   path = p.join( RUST_ANALYZER_DIR, 'TOOLCHAIN_VERSION' )

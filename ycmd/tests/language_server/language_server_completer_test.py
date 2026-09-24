@@ -1625,7 +1625,8 @@ class LanguageServerCompleterTest( TestCase ):
   @IsolatedYcmd()
   def test_HandleInitializeInPollThread_MutexNotHeldDuringSendNotification(
       self, app ):
-    """Regression: _HandleInitializeInPollThread must not hold _server_info_mutex
+    """Regression: _HandleInitializeInPollThread must not hold
+    _server_info_mutex
     while calling SendNotification; otherwise a blocking WriteData in the poll
     thread deadlocks HTTP-handler threads waiting on the same mutex."""
     completer = MockCompleter()

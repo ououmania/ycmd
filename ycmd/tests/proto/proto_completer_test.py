@@ -80,7 +80,8 @@ class ProtoCompleterTest( TestCase ):
     """A warning is logged when buf cannot be found."""
     mock_utils.LOGGER = __import__( 'logging' ).getLogger( __name__ )
 
-    with patch( 'ycmd.completers.proto.proto_completer.ShouldEnableProtoCompleter',
-                return_value = False ):
+    with patch(
+        'ycmd.completers.proto.proto_completer.ShouldEnableProtoCompleter',
+        return_value = False ):
       result = GetCompleter( user_options_store.GetAll() )
       assert_that( result, none() )

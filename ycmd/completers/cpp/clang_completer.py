@@ -208,12 +208,12 @@ class ClangCompleter( Completer ):
     line = request_data[ 'line_num' ]
     column = request_data[ 'column_num' ]
     if goto_function == 'GetDefinitionOrDeclarationLocation':
-      module = extra_conf_store.ModuleForSourceFile(filename)
+      module = extra_conf_store.ModuleForSourceFile( filename )
       if module:
-        project_name = getattr(module, 'PROJECT_NAME', '')
+        project_name = getattr( module, 'PROJECT_NAME', '' )
       else:
         project_name = ''
-      return getattr( self._completer, goto_function)(
+      return getattr( self._completer, goto_function )(
           project_name,
           filename,
           request_data[ 'filepath' ],
@@ -390,9 +390,9 @@ class ClangCompleter( Completer ):
     line = request_data[ 'line_num' ]
     column = request_data[ 'column_num' ]
 
-    module = extra_conf_store.ModuleForSourceFile(filename)
+    module = extra_conf_store.ModuleForSourceFile( filename )
     if module:
-      project_name = getattr(module, 'PROJECT_NAME', '')
+      project_name = getattr( module, 'PROJECT_NAME', '' )
     else:
       project_name = ''
 

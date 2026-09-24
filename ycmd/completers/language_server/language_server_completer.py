@@ -201,7 +201,8 @@ class Response:
 
 
   def Cancel( self ):
-    """Called to cancel a pending request. Wakes up AwaitResponse immediately."""
+    """Called to cancel a pending request. Wakes up AwaitResponse
+    immediately."""
     self._cancelled = True
     self._event.set()
 
@@ -2652,7 +2653,8 @@ class LanguageServerCompleter( Completer ):
         request_id,
         getattr( lsp, handler )( request_id, request_data ),
         REQUEST_TIMEOUT_COMMAND )[ 'result' ]
-    except ( ResponseFailedException, ResponseAbortedException, ResponseTimeoutException ):
+    except ( ResponseFailedException, ResponseAbortedException,
+             ResponseTimeoutException ):
       result = None
     finally:
       with self._current_command_mutex:
