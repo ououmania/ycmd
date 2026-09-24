@@ -19,7 +19,7 @@
 
 from unittest.mock import patch
 from unittest import TestCase
-from hamcrest import assert_that, equal_to
+from hamcrest import assert_that, equal_to, has_item
 from ycmd import handlers
 from ycmd.completers.cpp import clangd_completer
 from ycmd.completers.language_server.language_server_completer import (
@@ -63,6 +63,20 @@ class UtilitiesTest( TestCase ):
       assert_that( clangd_completer.GetClangdCommand( user_options ),
                    equal_to( None ) )
 
+    clangd_completer.CLANGD_COMMAND = clangd_completer.NOT_CACHED
+
+
+  @patch( 'ycmd.completers.cpp.clangd_completer.FindExecutable',
+          lambda exe: exe )
+  def test_ClangdCompleter_GetClangdCommand_CompilationDatabaseDir( self ):
+    user_options = DefaultOptions()
+    user_options[ 'clangd_binary_path' ] = '/test/clangd'
+    with patch( 'ycmd.completers.cpp.clangd_completer.CheckClangdVersion',
+                return_value = True ):
+      clangd_completer.CLANGD_COMMAND = clangd_completer.NOT_CACHED
+      user_options[ 'clangd_compilation_database_dir' ] = '/proj/build'
+      assert_that( clangd_completer.GetClangdCommand( user_options ),
+                   has_item( '--compile-commands-dir=/proj/build' ) )
     clangd_completer.CLANGD_COMMAND = clangd_completer.NOT_CACHED
 
 

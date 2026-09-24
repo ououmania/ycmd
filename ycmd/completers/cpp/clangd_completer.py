@@ -162,6 +162,10 @@ def GetClangdCommand( user_options ):
   if LOGGER.isEnabledFor( logging.DEBUG ) and not put_log:
     CLANGD_COMMAND.append( '-log=verbose' )
 
+  compilation_database_dir = user_options[ 'clangd_compilation_database_dir' ]
+  if compilation_database_dir:
+    CLANGD_COMMAND.append( '--compile-commands-dir=' + compilation_database_dir )
+
   return CLANGD_COMMAND
 
 
