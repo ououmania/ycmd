@@ -368,7 +368,9 @@ class DebugInfoServer:
     running;
   - logfiles: a list of logging files used by the server;
   - extras: a list of DebugInfoItem objects for additional information on the
-    server."""
+    server;
+  - open_files: a list of file paths currently open in the server, ordered
+    most-recently-used first. Empty if not applicable to the server."""
 
   def __init__( self,
                 name,
@@ -377,7 +379,8 @@ class DebugInfoServer:
                 address = None,
                 port = None,
                 logfiles = [],
-                extras = [] ):
+                extras = [],
+                open_files = [] ):
     self.name = name
     self.is_running = ProcessIsRunning( handle )
     self.executable = executable
@@ -387,6 +390,7 @@ class DebugInfoServer:
     # Remove undefined logfiles from the list.
     self.logfiles = [ logfile for logfile in logfiles if logfile ]
     self.extras = extras
+    self.open_files = open_files
 
 
 class DebugInfoItem:
@@ -420,7 +424,8 @@ def BuildDebugInfoResponse( name, servers = [], items = [] ):
       'port': server.port,
       'pid': server.pid,
       'logfiles': server.logfiles,
-      'extras': [ BuildItemData( item ) for item in server.extras ]
+      'extras': [ BuildItemData( item ) for item in server.extras ],
+      'open_files': server.open_files
     }
 
 

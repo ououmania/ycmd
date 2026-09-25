@@ -208,6 +208,9 @@ class ServerFileState:
     self.state = ServerFileState.CLOSED
     self.checksum = None
     self.contents = ''
+    # Monotonic counter value from the owning completer, used to track the
+    # least-recently-used file for eviction.
+    self.last_used = 0
 
 
   def GetDirtyFileAction( self, contents ):

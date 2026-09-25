@@ -739,6 +739,84 @@ class LanguageServerCompleterTest( TestCase ):
 
 
   @IsolatedYcmd()
+  def test_LanguageServerCompleter_GetMaxFiles_Default( self, app ):
+    completer = MockCompleter()
+    assert_that( completer.GetMaxOpenFiles(), equal_to( 20 ) )
+    assert_that( completer.GetMaxMemoryMb(), equal_to( 0 ) )
+
+
+  @IsolatedYcmd()
+  def test_LanguageServerCompleter_GetMaxFiles_Custom( self, app ):
+    completer = MockCompleter( custom_options = {
+      'lsp_max_open_files': 5,
+      'lsp_max_memory_mb': 1024,
+    } )
+    assert_that( completer.GetMaxOpenFiles(), equal_to( 5 ) )
+    assert_that( completer.GetMaxMemoryMb(), equal_to( 1024 ) )
+
+
+  def _SeedOpenFileState( self, completer, names ):
+    for index, name in enumerate( names ):
+      state = completer._server_file_state[ name ]
+      state.state = lsp.ServerFileState.OPEN
+      state.last_used = index + 1
+
+
+  @IsolatedYcmd()
+  def test_LanguageServerCompleter_NoEvictionUnderLimits( self, app ):
+    completer = MockCompleter( custom_options = {
+      'lsp_max_open_files': 10,
+      'lsp_max_memory_mb': 0,
+    } )
+    self._SeedOpenFileState( completer, ( 'a', 'b', 'c' ) )
+
+    completer._EvictFilesUnderLock()
+
+    assert_that( list( completer._server_file_state.keys() ),
+                 contains_exactly( 'a', 'b', 'c' ) )
+
+
+  @IsolatedYcmd()
+  def test_LanguageServerCompleter_EvictOpenFiles( self, app ):
+    completer = MockCompleter( custom_options = { 'lsp_max_open_files': 2 } )
+    self._SeedOpenFileState( completer, ( 'a', 'b', 'c' ) )
+
+    completer._EvictFilesUnderLock()
+
+    # 'a' has the smallest last_used and is evicted first.
+    assert_that( list( completer._server_file_state.keys() ),
+                 contains_exactly( 'b', 'c' ) )
+
+
+  @IsolatedYcmd()
+  def test_LanguageServerCompleter_EvictByMemory( self, app ):
+    completer = MockCompleter( custom_options = { 'lsp_max_memory_mb': 100 } )
+    self._SeedOpenFileState( completer, ( 'a', 'b' ) )
+
+    # RSS exceeds the limit once, then drops below it after evicting the
+    # least-recently-used file 'a'.
+    with patch.object( completer, '_ServerProcessRssMb',
+                       side_effect = [ 200, 50 ] ):
+      completer._EvictFilesUnderLock()
+
+    assert_that( list( completer._server_file_state.keys() ),
+                 contains_exactly( 'b' ) )
+
+
+  @IsolatedYcmd()
+  def test_LanguageServerCompleter_EvictByMemory_All( self, app ):
+    completer = MockCompleter( custom_options = { 'lsp_max_memory_mb': 100 } )
+    self._SeedOpenFileState( completer, ( 'a', 'b' ) )
+
+    # RSS never drops below the limit, so every open file is evicted.
+    with patch.object( completer, '_ServerProcessRssMb',
+                       return_value = 200 ):
+      completer._EvictFilesUnderLock()
+
+    assert_that( list( completer._server_file_state.keys() ), empty() )
+
+
+  @IsolatedYcmd()
   def test_LanguageServerCompleter_RejectWorkspaceConfigurationRequest(
       self, app ):
     completer = MockCompleter()

@@ -1078,6 +1078,7 @@ class LanguageServerCompleter( Completer ):
     Implementations are required to call this after disconnection and killing
     the downstream server."""
     self._server_file_state = lsp.ServerFileStateStore()
+    self._file_access_counter = 0
     self._latest_diagnostics_mutex = threading.Lock()
     self._latest_diagnostics = collections.defaultdict( list )
     self._sync_type = 'Full'
@@ -1101,6 +1102,20 @@ class LanguageServerCompleter( Completer ):
 
   def Language( self ):
     return self._language
+
+
+  def GetMaxOpenFiles( self ):
+    """Returns the maximum number of files to keep open in the language server
+    before evicting the least-recently-used ones. A value of 0 or less disables
+    the file-count based eviction."""
+    return int( self.user_options.get( 'lsp_max_open_files', 20 ) )
+
+
+  def GetMaxMemoryMb( self ):
+    """Returns the maximum resident set size (in MB) of the language server
+    process before evicting the least-recently-used files. A value of 0 or less
+    disables the memory-based eviction."""
+    return int( self.user_options.get( 'lsp_max_memory_mb', 0 ) )
 
 
   def StartServer( self, request_data ):
@@ -1788,7 +1803,8 @@ class LanguageServerCompleter( Completer ):
         executable = self.GetCommandLine(),
         port = self._port if self._connection_type == 'tcp' else None,
         logfiles = logfiles,
-        extras = extras )
+        extras = extras,
+        open_files = self._OpenFilesMru() )
 
     return responses.BuildDebugInfoResponse( name = self.GetCompleterName(),
                                              servers = [ server ] )
@@ -2223,10 +2239,13 @@ class LanguageServerCompleter( Completer ):
       self._UpdateDirtyFilesUnderLock( request_data )
       files_to_purge = self._UpdateSavedFilesUnderLock( request_data )
       self._PurgeMissingFilesUnderLock( files_to_purge )
+      self._EvictFilesUnderLock()
 
 
   def _RefreshFileContentsUnderLock( self, file_name, contents, file_types ):
     file_state: lsp.ServerFileState = self._server_file_state[ file_name ]
+    self._file_access_counter += 1
+    file_state.last_used = self._file_access_counter
     old_state = file_state.state
     action = file_state.GetDirtyFileAction( contents )
 
@@ -2364,6 +2383,56 @@ class LanguageServerCompleter( Completer ):
       self.GetConnection().SendNotification( msg )
 
     del self._server_file_state[ file_state.filename ]
+
+
+  def _ServerProcessRssMb( self ):
+    """Return the resident set size (RSS) of the language server process in
+    megabytes, or 0 if it cannot be determined."""
+    if not self._server_handle:
+      return 0
+    pid = getattr( self._server_handle, 'pid', None )
+    if pid is None:
+      return 0
+    try:
+      with open( f'/proc/{ pid }/statm' ) as f:
+        fields = f.read().split()
+      page_size = os.sysconf( 'SC_PAGE_SIZE' )
+      return int( fields[ 1 ] ) * page_size // ( 1024 * 1024 )
+    except ( OSError, IndexError, ValueError ):
+      return 0
+
+
+  def _EvictFilesUnderLock( self ):
+    """Close the least-recently-used open files if the language server exceeds
+    the configured file count or memory limits. Must be called with
+    _server_info_mutex held."""
+    max_files = self.GetMaxOpenFiles()
+    if max_files > 0:
+      while len( self._server_file_state ) > max_files:
+        victim = min( self._server_file_state.values(),
+                      key = lambda state: state.last_used )
+        LOGGER.info( 'Evicting %s from %s: %d open files exceed limit %d',
+                     victim.filename,
+                     self.GetServerName(),
+                     len( self._server_file_state ),
+                     max_files )
+        self._PurgeFileFromServer( victim.filename )
+
+    max_memory = self.GetMaxMemoryMb()
+    if max_memory > 0:
+      while self._server_file_state:
+        rss = self._ServerProcessRssMb()
+        if rss <= max_memory:
+          break
+        victim = min( self._server_file_state.values(),
+                      key = lambda state: state.last_used )
+        LOGGER.info( 'Evicting %s from %s: server RSS %d MB exceeds '
+                     'limit %d MB',
+                     victim.filename,
+                     self.GetServerName(),
+                     rss,
+                     max_memory )
+        self._PurgeFileFromServer( victim.filename )
 
 
   def GetProjectRootFiles( self ):
@@ -3181,6 +3250,15 @@ class LanguageServerCompleter( Completer ):
                                                  message,
                                                  REQUEST_TIMEOUT_COMMAND )
     return response[ 'result' ]
+
+
+  def _OpenFilesMru( self ):
+    """Return the open file paths ordered by most-recently-used first. This is
+    the server-side view of the file LRU used for eviction."""
+    return [ state.filename
+             for state in sorted( self._server_file_state.values(),
+                                  key = lambda state: state.last_used,
+                                  reverse = True ) ]
 
 
   def CommonDebugItems( self ):

@@ -224,9 +224,10 @@ class ClangdCompleter( language_server_completer.LanguageServerCompleter ):
 
     self._clangd_command = GetClangdCommand( user_options )
     self._use_ycmd_caching = user_options[ 'clangd_uses_ycmd_caching' ]
-    self._project_directory = user_options[ 'clangd_project_directory' ]
+    self._project_directory = user_options[
+        'clangd_project_directory' ] or None
     self._compilation_database_dir = user_options[
-        'clangd_compilation_database_dir' ]
+        'clangd_compilation_database_dir' ] or None
     self._compilation_commands = {}
 
     self.RegisterOnFileReadyToParse(
@@ -261,6 +262,20 @@ class ClangdCompleter( language_server_completer.LanguageServerCompleter ):
     if self._compilation_database_dir:
       return self._compilation_database_dir
     return super().GetProjectDirectory( request_data )
+
+
+  def GetMaxOpenFiles( self ):
+    value = self.user_options.get( 'clangd_max_open_files' )
+    if value == '' or value is None:
+      return super().GetMaxOpenFiles()
+    return int( value )
+
+
+  def GetMaxMemoryMb( self ):
+    value = self.user_options.get( 'clangd_max_memory_mb' )
+    if value == '' or value is None:
+      return super().GetMaxMemoryMb()
+    return int( value )
 
 
   def SupportedFiletypes( self ):

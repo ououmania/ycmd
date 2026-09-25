@@ -262,3 +262,39 @@ class UtilitiesTest( TestCase ):
                        ) )
         assert_that( resp.status_code, equal_to( 200 ) )
         shutdown.assert_called()
+
+
+  @staticmethod
+  def _BuildClangdCompleter( overrides = None ):
+    user_options = DefaultOptions()
+    if overrides:
+      user_options.update( overrides )
+    with patch( 'ycmd.completers.cpp.clangd_completer.GetClangdCommand',
+                return_value = [ 'clangd' ] ):
+      return clangd_completer.ClangdCompleter( user_options )
+
+
+  def test_ClangdCompleter_GetMaxFiles_Default( self ):
+    completer = self._BuildClangdCompleter()
+    assert_that( completer.GetMaxOpenFiles(), equal_to( 20 ) )
+    assert_that( completer.GetMaxMemoryMb(), equal_to( 0 ) )
+
+
+  def test_ClangdCompleter_GetMaxFiles_ClangdOverride( self ):
+    completer = self._BuildClangdCompleter( {
+      'lsp_max_open_files': 20,
+      'clangd_max_open_files': 5,
+      'lsp_max_memory_mb': 1024,
+      'clangd_max_memory_mb': 2048,
+    } )
+    assert_that( completer.GetMaxOpenFiles(), equal_to( 5 ) )
+    assert_that( completer.GetMaxMemoryMb(), equal_to( 2048 ) )
+
+
+  def test_ClangdCompleter_GetMaxFiles_LspFallback( self ):
+    completer = self._BuildClangdCompleter( {
+      'lsp_max_open_files': 15,
+      'lsp_max_memory_mb': 512,
+    } )
+    assert_that( completer.GetMaxOpenFiles(), equal_to( 15 ) )
+    assert_that( completer.GetMaxMemoryMb(), equal_to( 512 ) )
