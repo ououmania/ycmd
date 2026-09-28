@@ -1984,6 +1984,13 @@ class LanguageServerCompleter( Completer ):
       # We have to get the settings before starting the server, as this call
       # might throw UnknownExtraConf.
       self._StartAndInitializeServer( request_data )
+    elif self._server_started and not self.ServerIsHealthy():
+      # Server was previously started but has since died unexpectedly (e.g.
+      # clangd crash or external kill). Restart it automatically so the user
+      # does not have to issue a manual RestartServer command.
+      LOGGER.warning( '%s has died unexpectedly; restarting...',
+                      self.GetServerName() )
+      self._RestartServer( request_data )
 
     if not self.ServerIsHealthy():
       return
