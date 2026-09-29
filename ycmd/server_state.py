@@ -52,7 +52,7 @@ class ServerState:
 
   def Shutdown( self ):
     with self._filetype_completers_lock:
-      for completer in self._filetype_completers.values():
+      for completer in set( self._filetype_completers.values() ):
         if completer:
           completer.Shutdown()
 
