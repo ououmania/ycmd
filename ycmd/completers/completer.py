@@ -516,6 +516,15 @@ class Completer( metaclass = abc.ABCMeta ):
     pass # pragma: no cover
 
 
+  def ShouldKeepAliveOnClientDetach( self ):
+    """Whether the downstream server should survive a client detach.
+
+    Subservers are normally shut down when the editor goes away. A completer
+    whose server is expensive to start can opt in to being reused across
+    editor sessions by overriding this to return True."""
+    return False
+
+
   def ServerIsReady( self ):
     return self.ServerIsHealthy()
 

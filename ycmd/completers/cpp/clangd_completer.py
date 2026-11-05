@@ -235,6 +235,12 @@ class ClangdCompleter( language_server_completer.LanguageServerCompleter ):
     )
 
 
+  def ShouldKeepAliveOnClientDetach( self ):
+    # Building the C++ index from scratch is expensive, so keep clangd alive
+    # across editor sessions when the ycmd server is reused.
+    return True
+
+
   def _Reset( self ):
     super()._Reset()
     self._compilation_commands = {}

@@ -352,6 +352,12 @@ def DebugInfo( request, response ):
   return _JsonResponse( result, response )
 
 
+@app.post( '/detach' )
+def Detach( request, response ):
+  _server_state.ShutdownCompletersOnClientDetach()
+  return _JsonResponse( True, response )
+
+
 @app.post( '/shutdown' )
 def Shutdown( request, response ):
   ServerShutdown()

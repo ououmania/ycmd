@@ -59,6 +59,30 @@ class ServerState:
     self._gencomp.Shutdown()
 
 
+  def ShutdownCompletersOnClientDetach( self ):
+    """Shut down subservers that must not survive a client detach.
+
+    Completers reused across editor sessions opt out via
+    ShouldKeepAliveOnClientDetach(). Shut-down completers are removed from the
+    filetype map so the next request builds a fresh instance instead of
+    hitting the crash-recovery branch in OnFileReadyToParse()."""
+    with self._filetype_completers_lock:
+      to_shutdown = { completer
+                      for completer in self._filetype_completers.values()
+                      if completer and
+                      not completer.ShouldKeepAliveOnClientDetach() }
+      # Drop the keys before shutting down, and shut down outside the lock:
+      # Shutdown() may wait for a subprocess to exit, which must not block
+      # unrelated requests from re-creating a completer for these filetypes.
+      self._filetype_completers = {
+          filetype: comp
+          for filetype, comp in self._filetype_completers.items()
+          if comp not in to_shutdown
+      }
+    for completer in to_shutdown:
+      completer.Shutdown()
+
+
   def _GetFiletypeCompleterForFiletype( self, filetype ):
     with self._filetype_completers_lock:
       try:
